@@ -1,0 +1,12 @@
+C:\Users\Annika\Desktop\Casino\Shared\bin\Debug\net6.0\Casino.Shared.deps.json
+C:\Users\Annika\Desktop\Casino\Shared\bin\Debug\net6.0\Casino.Shared.dll
+C:\Users\Annika\Desktop\Casino\Shared\bin\Debug\net6.0\Casino.Shared.pdb
+C:\Users\Annika\Desktop\Casino\Shared\obj\Debug\net6.0\Casino.Shared.csproj.AssemblyReference.cache
+C:\Users\Annika\Desktop\Casino\Shared\obj\Debug\net6.0\Casino.Shared.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Annika\Desktop\Casino\Shared\obj\Debug\net6.0\Casino.Shared.AssemblyInfoInputs.cache
+C:\Users\Annika\Desktop\Casino\Shared\obj\Debug\net6.0\Casino.Shared.AssemblyInfo.cs
+C:\Users\Annika\Desktop\Casino\Shared\obj\Debug\net6.0\Casino.Shared.csproj.CoreCompileInputs.cache
+C:\Users\Annika\Desktop\Casino\Shared\obj\Debug\net6.0\Casino.Shared.dll
+C:\Users\Annika\Desktop\Casino\Shared\obj\Debug\net6.0\refint\Casino.Shared.dll
+C:\Users\Annika\Desktop\Casino\Shared\obj\Debug\net6.0\Casino.Shared.pdb
+C:\Users\Annika\Desktop\Casino\Shared\obj\Debug\net6.0\ref\Casino.Shared.dll

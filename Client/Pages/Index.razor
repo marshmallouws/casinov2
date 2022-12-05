@@ -1,0 +1,122 @@
+﻿@using System.ComponentModel.DataAnnotations;
+@using Casino.Shared.Models;
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+@page "/"
+
+<PageTitle>Index</PageTitle>
+
+<h1>Welcome to casino game, helooo!</h1>
+<br />
+
+@if (!GameStarted) {
+<EditForm Model="@player" OnInvalidSubmit="Connect">
+           <p>Enter name:  <InputText @bind-Value="@player.Name"/></p>
+ </EditForm>
+
+ <button class="btn btn-primary" @onclick="Connect">Start game</button>
+} else if (!Match) {
+<p>Hi @player.Name! Waiting for another player</p>
+ <br />
+ <BSSpinner Color="BSColor.Info"/>
+}
+
+@if (Match)
+{
+    <div>
+        <p>
+            Please say hello to your opponent @opponent.Name!
+        </p>
+    </div>
+}
+
+@code {
+    private HubConnection? hubConnection;
+    private Player player { get; set; } = new Player();
+    private Player opponent { get; set; } = new Player();
+    private bool GameStarted { get; set; } = false;
+    private bool Match { get; set; } = false;
+
+
+    private async Task Connect()
+    {
+        GameStarted = true;
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri($"/gamehub?playername={player.Name}"))
+            .Build();
+
+        // With "On" method we can register a <message> that the hub can act upon.
+        // We define these <message> in the server (see GameHub.cs).
+
+        hubConnection.On<string, string>("RecieveMessage", async (username, message) =>
+        {
+            await LogMe(username, message);
+        });
+
+        hubConnection.On<string>("14", async (start) =>
+        {
+            if (start == "start the game already")
+            {
+                Match = true;
+                await Announce();
+                StateHasChanged();
+            }
+        });
+
+        hubConnection.On<string>("Announcement", (username) =>
+        {
+            opponent.Name = username;
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    public async Task Announce()
+    {
+        if (hubConnection != null)
+        {
+            await hubConnection.SendAsync("AnnouncePlayer", player.Name);
+        }
+    }
+
+    public async Task Send()
+    {
+        if (hubConnection != null)
+        {
+            await hubConnection.SendAsync("SendMessage", player.Name, "Hello");
+        }
+    }
+
+    public async Task LogMe(string username, string message)
+    {
+        await JSRuntime.InvokeVoidAsync("console.log", username + ": " + message);
+        StateHasChanged();
+    }
+
+    public async Task ShowTable()
+    {
+        await hubConnection.On<List<Card>>("FirstDeal", async ())
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection != null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+
+
+            hubConnection.On<string>("14", async (start) =>
+        {
+            if (start == "start the game already")
+            {
+                Match = true;
+                await Announce();
+                StateHasChanged();
+            }
+        });
+}
