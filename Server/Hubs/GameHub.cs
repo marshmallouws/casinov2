@@ -65,10 +65,11 @@ namespace Casino.Server.Hubs
 
         public async Task ShowTableCards()
         {
-            if(game.GameIsReady())
+            System.Diagnostics.Debug.WriteLine("ShowTableCards . This message apears in the debug console in VS");
+            if (true)
             {
                 var cards = game.DealCards();
-                await Clients.All.SendAsync("firstDeal", cards);
+                await Clients.All.SendAsync("FirstDeal", cards);
             }
         }
     }

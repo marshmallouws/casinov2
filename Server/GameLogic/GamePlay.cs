@@ -10,11 +10,13 @@ namespace Casino.Server.GameLogic
         private Player? player2;
         private static Random rnd = new Random();
         private Player? playerturn;
+        private CardInitializer cardInit = new CardInitializer();
         public Dictionary<string, List<Card>>? CardBuilds;
 
         public GamePlay()
         {
-            deck = InitializeShuffledDeck();
+            deck = cardInit.InitializeDeck();
+            deck.RemainingCards = cardInit.ShuffleDeck(deck.RemainingCards);
         }
 
         public GamePlay initializeGame()
@@ -33,12 +35,13 @@ namespace Casino.Server.GameLogic
         public List<Card> DealCards()
         {
             var cards = deck.RemainingCards.Take(4).ToList();
-
-            foreach(Card card in cards)
+            
+            foreach (Card card in cards)
             {
+                System.Diagnostics.Debug.WriteLine("DealCards." + card.Name);
                 deck.RemainingCards.Remove(card);
             }
-
+            System.Diagnostics.Debug.WriteLine("DealCards." + deck.RemainingCards.Count);
             return cards;
         }
 
@@ -50,65 +53,6 @@ namespace Casino.Server.GameLogic
         public Player CreatePlayer(string name)
         {
             return new Player(name);
-        }
-
-        private Deck InitializeShuffledDeck()
-        {
-            var deck = new Deck();
-            var name = "";
-            for (int i = 0; i < 4; i++)
-            {
-                Suit suit;
-                switch (i)
-                {
-                    case 0:
-                        suit = Suit.Heart;
-                        name += "s";
-                        break;
-                    case 1:
-                        suit = Suit.Spade;
-                        name += "p";
-                        break;
-                    case 2:
-                        suit = Suit.Club;
-                        name += "k";
-                        break;
-                    case 3:
-                        suit = Suit.Diamond;
-                        name += "l";
-                        break;
-                    default:
-                        suit = Suit.Heart;
-                        break;
-                }
-
-                for (int j = 1; j <= 13; j++)
-                {
-                    var points = 0;
-
-                    if (j == 1)
-                    {
-                        name += "a";
-                        points = 1;
-                    }
-                    else if (suit.Equals(Suit.Spade) && j == 2)
-                        points = 1;
-                    else if (suit.Equals(Suit.Diamond) && j == 10)
-                        points = 2;
-
-                    if (j == 11)
-                        name += "j";
-                    else if (j == 12)
-                        name += "q";
-                    else if (j == 13)
-                        name += "k";
-                    
-                    deck.RemainingCards.Add(new Card(suit, j, points, name));
-                }
-            }
-            // shuffle deck
-            deck.RemainingCards.OrderBy(c => rnd.Next()).ToList();
-            return deck;
         }
 
         public void incrementPlayerTurn()

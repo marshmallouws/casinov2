@@ -7,6 +7,62 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="wwwroot\cards\back.png" />
+    <None Include="wwwroot\cards\k10.png" />
+    <None Include="wwwroot\cards\k2.png" />
+    <None Include="wwwroot\cards\k3.png" />
+    <None Include="wwwroot\cards\k4.png" />
+    <None Include="wwwroot\cards\k5.png" />
+    <None Include="wwwroot\cards\k6.png" />
+    <None Include="wwwroot\cards\k7.png" />
+    <None Include="wwwroot\cards\k8.png" />
+    <None Include="wwwroot\cards\k9.png" />
+    <None Include="wwwroot\cards\ka.png" />
+    <None Include="wwwroot\cards\kj.png" />
+    <None Include="wwwroot\cards\kk.png" />
+    <None Include="wwwroot\cards\kq.png" />
+    <None Include="wwwroot\cards\l10.png" />
+    <None Include="wwwroot\cards\l2.png" />
+    <None Include="wwwroot\cards\l3.png" />
+    <None Include="wwwroot\cards\l4.png" />
+    <None Include="wwwroot\cards\l5.png" />
+    <None Include="wwwroot\cards\l6.png" />
+    <None Include="wwwroot\cards\l7.png" />
+    <None Include="wwwroot\cards\l8.png" />
+    <None Include="wwwroot\cards\l9.png" />
+    <None Include="wwwroot\cards\la.png" />
+    <None Include="wwwroot\cards\lj.png" />
+    <None Include="wwwroot\cards\lk.png" />
+    <None Include="wwwroot\cards\lq.png" />
+    <None Include="wwwroot\cards\p10.png" />
+    <None Include="wwwroot\cards\p2.png" />
+    <None Include="wwwroot\cards\p3.png" />
+    <None Include="wwwroot\cards\p4.png" />
+    <None Include="wwwroot\cards\p5.png" />
+    <None Include="wwwroot\cards\p6.png" />
+    <None Include="wwwroot\cards\p7.png" />
+    <None Include="wwwroot\cards\p8.png" />
+    <None Include="wwwroot\cards\p9.png" />
+    <None Include="wwwroot\cards\pa.png" />
+    <None Include="wwwroot\cards\pj.png" />
+    <None Include="wwwroot\cards\pk.png" />
+    <None Include="wwwroot\cards\pq.png" />
+    <None Include="wwwroot\cards\s10.png" />
+    <None Include="wwwroot\cards\s2.png" />
+    <None Include="wwwroot\cards\s3.png" />
+    <None Include="wwwroot\cards\s4.png" />
+    <None Include="wwwroot\cards\s5.png" />
+    <None Include="wwwroot\cards\s6.png" />
+    <None Include="wwwroot\cards\s7.png" />
+    <None Include="wwwroot\cards\s8.png" />
+    <None Include="wwwroot\cards\s9.png" />
+    <None Include="wwwroot\cards\sa.png" />
+    <None Include="wwwroot\cards\sj.png" />
+    <None Include="wwwroot\cards\sk.png" />
+    <None Include="wwwroot\cards\sq.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BlazorStrap" Version="5.0.106" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="6.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="6.0.6" PrivateAssets="all" />
