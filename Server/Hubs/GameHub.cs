@@ -1,25 +1,26 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Casino.Shared.Models;
 using Casino.Server.GameLogic;
+using System.Text.Json;
 
 namespace Casino.Server.Hubs
 {
     public class GameHub : Hub
     {
-
-        private static Dictionary<string, Player> Players = new Dictionary<string, Player>();
-        private GamePlay game = new GamePlay();
+        //private static readonly ClientConnectionMap<string> _connections = new ClientConnectionMap<string>();
+        private static Dictionary<string, Player> players = new Dictionary<string, Player>();
+        private static GamePlay game = new GamePlay();
 
         public override async Task OnConnectedAsync()
         {
-
-            System.Diagnostics.Debug.WriteLine("This message apears in the debug console in VS");
             string name = string.Empty;
             try
             {
                 name = Context.GetHttpContext().Request.Query["playerName"];
-                Players.Add(Context.ConnectionId, new Player(name));
+                players.Add(Context.ConnectionId, new Player(name));
+                game.AddPlayer(new Player(name));
 
+                System.Diagnostics.Debug.WriteLine("This message apears in the debug console in VS" + name);
             } catch (NullReferenceException e)
             {
                 // TODO: Handle null name
@@ -27,7 +28,7 @@ namespace Casino.Server.Hubs
                 // Players that send an empty name should have their browser crashing and burning.
             }
 
-            if (Players.Count == 2)
+            if (players.Count == 2)
             {
                 // Now there are two players registered in the server, and therefore,
                 // we broadcast to them that the game can start.
@@ -41,36 +42,54 @@ namespace Casino.Server.Hubs
         // Below there is the "Others" which broadcast the <message> to everyother
         // client beside the one initating the method.
 
-        public async Task AnnouncePlayer(string username)
+        public async Task AnnounceOpponent(string playerName)
         {
-            await Clients.Others.SendAsync("Announcement", username);
+            await Clients.Others.SendAsync("Opponent", playerName);
         }
 
-        public async Task SendMessage(string username, string message)
-        {
-            await Clients.Others.SendAsync("RecieveMessage", username, message);
+        public async Task SendMessage(string playerName, string message)
+        { 
+            await Clients.Others.SendAsync("RecieveMessage", playerName, message);
         }
 
         // TODO: Divide clients into groups of two to have multiple players at once
         public async Task StartGame()
-        {
-            var players = Players.Values.ToList();
-            var p1 = players[0];
-            var p2 = players[1];
-
-            game.AddPlayers(p1, p2);
-
+        { 
             await Clients.All.SendAsync("14", "start the game already");
         }
-
+        
         public async Task ShowTableCards()
         {
-            System.Diagnostics.Debug.WriteLine("ShowTableCards . This message apears in the debug console in VS");
-            if (true)
-            {
-                var cards = game.DealCards();
-                await Clients.All.SendAsync("FirstDeal", cards);
-            }
+            await Clients.All.SendAsync("SendTableCards", game.TableCards);
+        }
+
+        public async Task TakeTurn(string currentBuild)
+        {
+            var cur = JsonSerializer.Deserialize<CardBuild>(currentBuild);
+            game.CountPoints(cur);
+            System.Diagnostics.Debug.WriteLine("------------------" + game.GetPlayerTurn().Name);
+            game.incrementPlayerTurn();
+            System.Diagnostics.Debug.WriteLine("------------------" + game.GetPlayerTurn().Name);
+            await ShowTableCards();
+
+        }
+
+        public async Task SendPlayerTurn()
+        {
+            players.TryGetValue(Context.ConnectionId, out var player);
+            var isMyTurn = player.Name == game.GetPlayerTurn().Name;
+            await Clients.Caller.SendAsync("PlayersTurn", isMyTurn);
+        }
+
+        public async Task DealPlayerCards()
+        {
+            var isLastTurn = false;
+            var cards = game.DealCards();
+
+            if (game.GetDeckSize() <= 4)
+                isLastTurn = true;
+
+            await Clients.Caller.SendAsync("PlayerCards", cards, isLastTurn);
         }
     }
 }

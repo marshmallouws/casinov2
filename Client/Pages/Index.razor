@@ -1,5 +1,8 @@
 ﻿@using System.ComponentModel.DataAnnotations;
 @using Casino.Shared.Models;
+@using Microsoft.AspNetCore.WebUtilities;
+@using Casino.Client.Services;
+@using System.Text.Json;
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @implements IAsyncDisposable
@@ -7,133 +10,155 @@
 @page "/"
 
 <PageTitle>Index</PageTitle>
-
-<h1>Welcome to casino game, helooo!</h1>
-<br />
-
 @if (!GameStarted) {
-<EditForm Model="@player" OnInvalidSubmit="Connect">
-           <p>Enter name:  <InputText @bind-Value="@player.Name"/></p>
- </EditForm>
 
- <button class="btn btn-primary" @onclick="Connect">Start game</button>
+    <h1>Welcome to casino game, helooo!</h1>
+    <br /> 
+
+    <EditForm Model="@player" OnInvalidSubmit="Connect">
+        <p>Enter name:  <InputText @bind-Value="@player.Name"/></p>
+    </EditForm>
+
+    <button class="btn btn-primary" @onclick="Connect">Start game</button>
 } else if (!Match) {
-<p>Hi @player.Name! Waiting for another player</p>
- <br />
- <BSSpinner Color="BSColor.Info"/>
+    <p>Hi @player.Name! Waiting for another player</p>
+    <br />
+    <BSSpinner Color="BSColor.Info"/>
 }
 
-@if (Match)
+@if (Match && TableCards != null && PlayerCards != null)
 {
-    <div>
-        <p>
-            Please say hello to your opponent @opponent.Name!
-        </p>
-    </div>
-}
 
-@if (cards != null)
 
-{
     <BSContainer>
-        <BSCol>
-        
-        @foreach(var c in cards) 
-        {
-            <div class="d-inline-block">
-                <BSImage Source=@GetCardPath(c.Name) Align="Align.Center" width="100" height="200"/>
-            </div>
-        }
+        <BSRow Align="Align.Start" Justify="Justify.Center">
+        <h1>Game against @opponent.Name!</h1>
+        <h2>@(isMyTurn ? "Your Turn" : opponent.Name + "'s turn")</h2>
+        <h4>@error</h4>
+        </BSRow>
+        <BSRow Align="Align.Start" Justify="Justify.Center">
+            <BSCol>
+            <h2>Table cards</h2>
+            </BSCol>
+        </BSRow>
+        <BSRow Align="Align.Start" Justify="Justify.Center" PaddingBottom="Padding.ExtraLarge">
+            @foreach (var c in TableCards)
+            {
+                <BSCol Column="2">
+                    <div class="d-inline-block">
+                        <BSImage Source=@GetCardPath(c.Name) Align="Align.Center" @onclick="@(()=> makeMovesDuringTurn(c, true))" border=@(c.IsSelected ? "2px solid #72d194" : "") width="100" height="200"/>
+                    </div>
+                </BSCol>
+            }
+        </BSRow>
 
-        </BSCol>
+        <!-- Player Cards -->
+        <BSRow Justify="Justify.Center" Align="Align.Start" PaddingTop="Padding.ExtraLarge">
+           <h2>Your cards</h2> 
+        </BSRow>
+        <br />
+        <br />
+        <br />
+        <BSRow Align="Align.Start" Justify="Justify.Center" >
+            @foreach (var c in PlayerCards)
+            {
+                <BSCol Column="2">
+                    <div class="d-inline-block">
+                        <BSImage Source=@GetCardPath(c.Name) Align="Align.Center" @onclick="@(()=> makeMovesDuringTurn(c, false))" border=@(c.IsSelected ? "2px solid #72d194" : "") width="100" height="200"/>
+                    </div>
+                </BSCol>
+            }
+        </BSRow>
+        <BSRow Justify="Justify.Center" Align="Align.Start">
+            <BSCol><button class="btn btn-primary" disabled=@(!isMyTurn)  @onclick="(() => FinishTurn())">Finish turn</button></BSCol>
+        </BSRow>
     </BSContainer>
-
 }
 
 @code {
-    private HubConnection? hubConnection;
-    private Player player { get; set; } = new Player();
-    private Player opponent { get; set; } = new Player();
+    private Player player { get; set; } = new Player("");
+    private Player opponent { get; set; }
     private bool GameStarted { get; set; } = false;
     private bool Match { get; set; } = false;
-    private List<Card>? cards { get; set; }
+    private HubConnection? hubConnection{ get; set; }
+    private List<Card>? TableCards { get; set; }
+    private List<Card>? PlayerCards { get; set; }
+    private bool isMyTurn = false;
+    private CardBuild? currentBuild { get; set; }
+    private string error = ""; 
+    private bool isLastRound = false; 
 
+    private void startTurn()
+    {
+        currentBuild = new CardBuild(player);
+    }
 
     private async Task Connect()
     {
         GameStarted = true;
         hubConnection = new HubConnectionBuilder()
             .WithUrl(NavigationManager.ToAbsoluteUri($"/gamehub?playername={player.Name}"))
+            .WithAutomaticReconnect()
             .Build();
 
         // With "On" method we can register a <message> that the hub can act upon.
         // We define these <message> in the server (see GameHub.cs).
 
-        hubConnection.On<string, string>("RecieveMessage", async (username, message) =>
-        {
-            await LogMe(username, message);
+        hubConnection.On<string>("Opponent", (opponent) => {
+            this.opponent = new Player(opponent);
+            StateHasChanged();
         });
 
+        // Start game
         hubConnection.On<string>("14", async (start) =>
         {
             if (start == "start the game already")
             {
                 Match = true;
-                await Announce();
-                StateHasChanged();
+                await GetOpponentName();
+                await GetPlayerTurn();
                 await ShowCards();
-
+                StateHasChanged();
             }
         });
 
-        hubConnection.On<string>("Announcement", (username) =>
+        hubConnection.On<bool>("PlayersTurn", (_isMyTurn) =>
         {
-            opponent.Name = username;
+            isMyTurn = _isMyTurn;
             StateHasChanged();
         });
 
-
-        hubConnection.On<List<Card>>("FirstDeal", async (_cards) =>
+        // Deal first set of cards
+        hubConnection.On<List<Card>>("SendTableCards", async (_cards) =>
         {
-            await LogMe("Hej", "cards");
             if(_cards != null)
             {
-                cards = _cards;
-                StateHasChanged();
+                TableCards = _cards;
             }
 
+            await GetPlayerTurn();
+            startTurn();
+
+            if (PlayerCards.Count == 0)
+            {
+                await hubConnection.SendAsync("DealPlayerCards");
+            }
+
+            StateHasChanged();
         });
 
+        hubConnection.On<List<Card>, bool>("PlayerCards", (_cards, _isLastRound) =>
+        {
+            if(_cards != null)
+            {
+                PlayerCards = _cards;
+                isLastRound = _isLastRound;
+            }
 
-
+            startTurn();
+            StateHasChanged();
+        });
         await hubConnection.StartAsync();
-    }
-
-    public string GetCardPath(string name) 
-    {
-        return "cards/" + name + ".png";
-    }
-
-    public async Task Announce()
-    {
-        if (hubConnection != null)
-        {
-            await hubConnection.SendAsync("AnnouncePlayer", player.Name);
-        }
-    }
-
-    public async Task Send()
-    {
-        if (hubConnection != null)
-        {
-            await hubConnection.SendAsync("SendMessage", player.Name, "Hello");
-        }
-    }
-
-    public async Task LogMe(string username, string message)
-    {
-        await JSRuntime.InvokeVoidAsync("console.log", username + ": " + message);
-        StateHasChanged();
     }
 
     public async Task ShowCards()
@@ -141,7 +166,110 @@
         if (hubConnection != null)
         {
             await hubConnection.SendAsync("ShowTableCards");
+            await hubConnection.SendAsync("DealPlayerCards");
+
         }
+    }
+
+    public async Task GetPlayerTurn()
+    {
+        if(hubConnection != null)
+        {
+            await hubConnection.SendAsync("SendPlayerTurn");
+        }
+    }
+
+    // When player has accepted the turn and cards played
+    public async Task FinishTurn()
+    {
+        if (currentBuild?.TableCards.Count != 0) {
+            var sum = 0;
+
+            foreach (var c in currentBuild?.TableCards)
+            {
+                sum += c.Number;
+            }
+
+            // Take more than one card pr turn.
+            if (sum % currentBuild.PlayerCard.Number != 0)
+            {
+                await LogMe("ERROR - SOMTING WONG");
+                error = "Illegal move!";
+                StateHasChanged();
+                await Task.Delay(5000);
+                deselectAllCards();
+
+                // Clear CardBuild
+                startTurn();
+
+                error = "";
+                StateHasChanged();
+                return;
+            }
+        }
+
+        deselectAllCards();
+        if (hubConnection != null)
+        {
+            PlayerCards.Remove(currentBuild.PlayerCard);
+            await hubConnection.SendAsync("TakeTurn", JsonSerializer.Serialize(currentBuild));
+        }
+        StateHasChanged();
+    }
+
+    // Request server for name of opponent
+    public async Task GetOpponentName()
+    {
+        if (hubConnection != null)
+        {
+            await JSRuntime.InvokeVoidAsync("console.log", "Annoucing someone: " + player.Name);
+            await hubConnection.SendAsync("AnnounceOpponent", player.Name);
+        }
+    }
+
+    private void deselectAllCards()
+    {
+        foreach(var c in PlayerCards)
+        {
+            c.IsSelected = false;
+        }
+
+        foreach(var c in TableCards)
+        {
+            c.IsSelected = false;
+        }
+    }
+
+    private void makeMovesDuringTurn(Card card, bool isTableCards)
+    {
+        if(isTableCards)
+        {
+            card.IsSelected = !card.IsSelected;
+            currentBuild?.UpdateSelectedTableCards(card);
+        }
+        else
+        {
+            foreach(var c in PlayerCards)
+            {
+                c.IsSelected = false;
+            }
+            card.IsSelected = true;
+            currentBuild?.UpdatePlayerCard(card);
+        }
+
+        StateHasChanged();
+    }
+
+    public async Task LogMe(string text)
+    {
+        await JSRuntime.InvokeVoidAsync("console.log", text);
+        StateHasChanged();
+    }
+
+    // Find image path to the dealt cards
+    private string GetCardPath(string name)
+    {
+        return "cards/" + name + ".png";
     }
 
     public async ValueTask DisposeAsync()
@@ -151,4 +279,5 @@
             await hubConnection.DisposeAsync();
         }
     }
-}
+ }
+

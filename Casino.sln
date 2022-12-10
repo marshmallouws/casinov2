@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Casino.Client", "Client\Cas
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Casino.Shared", "Shared\Casino.Shared.csproj", "{76597B46-98D9-48A2-8A22-EFB46239AB69}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Casino.Server.Test", "Casino.Server.Test\Casino.Server.Test.csproj", "{43A4A35C-4F39-4ABA-B244-7365DE2B2BE0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Casino.Server.Test", "Casino.Server.Test\Casino.Server.Test.csproj", "{43A4A35C-4F39-4ABA-B244-7365DE2B2BE0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

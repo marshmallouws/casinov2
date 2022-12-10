@@ -11,8 +11,6 @@
             Points = new List<Card>();
         }
 
-        public Player() { }
-
         public void AddPoints(List<Card> cardsWon)
         {
             Points.AddRange(cardsWon);

@@ -36,7 +36,7 @@ namespace Casino.Server.GameLogic
                         break;
                 }
 
-                for (int j = 1; j <= 13; j++)
+                for (int j = 1; j <= 9; j++)
                 {
                     var name = suitName;
                     var points = 0;

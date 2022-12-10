@@ -10,7 +10,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
 builder.Services.AddResponseCompression(options =>
 {
-    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/octed-stream" });
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/octet-stream" });
 });
 
 var app = builder.Build();

@@ -9,12 +9,15 @@
         // Used to match name of picture when visualizing card
         public string Name { get; }
 
+        public bool IsSelected { get; set;  }
+
         public Card(Suit suit, int number, int points, string name)
         {
             Suit = suit;
             Number = number;
             Points = points;
             Name = name;
+            IsSelected = false; // Set in client
         }
     }
 }
