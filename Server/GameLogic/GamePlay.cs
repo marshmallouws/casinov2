@@ -6,6 +6,7 @@ namespace Casino.Server.GameLogic
     {
         private Game board;
         private Deck deck;
+        private List<Player> players;
         private Player? player1;
         private Player? player2;
         private static Random rnd = new Random();
@@ -14,8 +15,10 @@ namespace Casino.Server.GameLogic
         public Dictionary<string, List<Card>>? CardBuilds;
         public List<Card> TableCards { get; set; }
 
-        public GamePlay()
+        public GamePlay(List<Player> _players)
         {
+            players = _players;
+            currentPlayer = players[0];
             deck = cardInit.InitializeDeck();
             deck.RemainingCards = cardInit.ShuffleDeck(deck.RemainingCards);
             TableCards = DealCards();
@@ -51,22 +54,22 @@ namespace Casino.Server.GameLogic
             return cards;
         }
 
-        public bool GameIsReady()
+        public void IncrementPlayerTurn()
         {
-            return player1 != null && player2 != null;
-        }
-
-        public Player CreatePlayer(string name)
-        {
-            return new Player(name);
-        }
-
-        public void incrementPlayerTurn()
-        {
-            if (currentPlayer == player1)
-                currentPlayer = player2;
-            else
-                currentPlayer = player1;
+            for(int i = 0; i < players.Count; i++)
+            {
+                if (players[i].Equals(currentPlayer))
+                {
+                    try
+                    {
+                        currentPlayer = players[i + 1];
+                    } catch (Exception e)
+                    {
+                        currentPlayer = players[0];
+                    }
+                    break;
+                }
+            }
         }
 
         public int GetDeckSize()

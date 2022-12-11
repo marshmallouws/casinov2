@@ -32,7 +32,7 @@
 
     <BSContainer>
         <BSRow Align="Align.Start" Justify="Justify.Center">
-        <h1>Game against @opponent.Name!</h1>
+        <h1>Game against @opponent?.Name!</h1>
         <h2>@(isMyTurn ? "Your Turn" : opponent.Name + "'s turn")</h2>
         <h4>@error</h4>
         </BSRow>
@@ -86,7 +86,8 @@
     private bool isMyTurn = false;
     private CardBuild? currentBuild { get; set; }
     private string error = ""; 
-    private bool isLastRound = false; 
+    private bool isLastRound = false;
+    private string groupName { get; set; }
 
     private void startTurn()
     {
@@ -107,6 +108,11 @@
         hubConnection.On<string>("Opponent", (opponent) => {
             this.opponent = new Player(opponent);
             StateHasChanged();
+        });
+
+        hubConnection.On<string>("group", (_groupname) =>
+        {
+            groupName = _groupname;
         });
 
         // Start game
@@ -141,7 +147,7 @@
 
             if (PlayerCards.Count == 0)
             {
-                await hubConnection.SendAsync("DealPlayerCards");
+                await hubConnection.SendAsync("DealPlayerCards", groupName);
             }
 
             StateHasChanged();
@@ -165,8 +171,8 @@
     {
         if (hubConnection != null)
         {
-            await hubConnection.SendAsync("ShowTableCards");
-            await hubConnection.SendAsync("DealPlayerCards");
+            await hubConnection.SendAsync("ShowTableCards", groupName);
+            await hubConnection.SendAsync("DealPlayerCards", groupName);
 
         }
     }
@@ -175,7 +181,7 @@
     {
         if(hubConnection != null)
         {
-            await hubConnection.SendAsync("SendPlayerTurn");
+            await hubConnection.SendAsync("SendPlayerTurn", groupName);
         }
     }
 
@@ -218,7 +224,7 @@
         if (hubConnection != null)
         {
             PlayerCards.Remove(currentBuild.PlayerCard);
-            await hubConnection.SendAsync("TakeTurn", JsonSerializer.Serialize(currentBuild));
+            await hubConnection.SendAsync("TakeTurn", JsonSerializer.Serialize(currentBuild), groupName);
         }
         StateHasChanged();
     }
@@ -228,7 +234,7 @@
     {
         if (hubConnection != null)
         {
-            await hubConnection.SendAsync("AnnounceOpponent", player.Name);
+            await hubConnection.SendAsync("AnnounceOpponent", player.Name, groupName);
         }
     }
 
