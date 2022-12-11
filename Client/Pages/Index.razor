@@ -184,14 +184,20 @@
     {
         if (currentBuild?.TableCards.Count != 0) {
             var sum = 0;
+            var isCardBiggerThanPlayerCard = false;
 
             foreach (var c in currentBuild?.TableCards)
             {
+                if(c.Number > currentBuild.PlayerCard.Number)
+                {
+                    isCardBiggerThanPlayerCard = true;
+                    break;
+                }
                 sum += c.Number;
             }
 
             // Take more than one card pr turn.
-            if (sum % currentBuild.PlayerCard.Number != 0)
+            if (sum % currentBuild.PlayerCard.Number != 0 || isCardBiggerThanPlayerCard)
             {
                 await LogMe("ERROR - SOMTING WONG");
                 error = "Illegal move!";
@@ -222,7 +228,6 @@
     {
         if (hubConnection != null)
         {
-            await JSRuntime.InvokeVoidAsync("console.log", "Annoucing someone: " + player.Name);
             await hubConnection.SendAsync("AnnounceOpponent", player.Name);
         }
     }
