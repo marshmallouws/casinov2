@@ -3,9 +3,9 @@
 @using Microsoft.AspNetCore.WebUtilities;
 @using Casino.Client.Services;
 @using System.Text.Json;
-@inject NavigationManager NavigationManager
-@inject IJSRuntime JSRuntime
-@implements IAsyncDisposable
+@inject NavigationManager NavigationManager;
+@inject IJSRuntime JSRuntime;
+@implements IAsyncDisposable;
 
 @page "/"
 
@@ -28,13 +28,11 @@
 
 @if (Match && TableCards != null && PlayerCards != null)
 {
-
-
     <BSContainer>
         <BSRow Align="Align.Start" Justify="Justify.Center">
         <h1>Game against @opponent?.Name!</h1>
-        <h2>@(isMyTurn ? "Your Turn" : opponent.Name + "'s turn")</h2>
-        <h4>@error</h4>
+        <h2>@(isMyTurn ? "Your Turn" : opponent?.Name + "'s turn")</h2>
+        <h3>@(isLastRound ? "LAST ROUND!" : "")</h3>
         </BSRow>
         <BSRow Align="Align.Start" Justify="Justify.Center">
             <BSCol>
@@ -51,6 +49,29 @@
                 </BSCol>
             }
         </BSRow>
+        
+
+        @if (showError)
+        {
+        <BSAlert Color=BSColor.Danger IsDismissible="true" Dismissed="@(() => Dismiss())" @key="alert">
+            Illegal move!
+        </BSAlert>
+        }
+
+        <!-- Alert -->
+        @if (showBuild)
+        {
+                <BSAlert Color=BSColor.Info IsDismissible="true" Dismissed="@(() => Dismiss())" @key="alert">
+                @opponent.Name took following cards:
+                @foreach (var i in imagesToShow)
+                {
+                    <BSImage Source=@GetCardPath(i) Align="Align.Center" width="100" height="200"/>
+                }
+                <hr>
+                With this: 
+                <BSImage Source=@GetCardPath(imageToShow) Align="Align.Center" width="100" height="200"/>
+                </BSAlert>
+        }
 
         <!-- Player Cards -->
         <BSRow Justify="Justify.Center" Align="Align.Start" PaddingTop="Padding.ExtraLarge">
@@ -76,23 +97,23 @@
 }
 
 @code {
-    private Player player { get; set; } = new Player("");
-    private Player opponent { get; set; }
-    private bool GameStarted { get; set; } = false;
-    private bool Match { get; set; } = false;
+    private BSAlert? alert;
+    private Player? opponent { get; set; }
     private HubConnection? hubConnection{ get; set; }
     private List<Card>? TableCards { get; set; }
     private List<Card>? PlayerCards { get; set; }
-    private bool isMyTurn = false;
     private CardBuild? currentBuild { get; set; }
-    private string error = ""; 
-    private bool isLastRound = false;
-    private string groupName { get; set; }
+    private string? groupName { get; set; }
 
-    private void startTurn()
-    {
-        currentBuild = new CardBuild(player);
-    }
+    private bool GameStarted { get; set; } = false;
+    private bool Match { get; set; } = false;
+    private bool isMyTurn = false;
+    private bool showBuild = false;
+    private bool isLastRound = false;
+    private bool showError = false;
+    private List<string>? imagesToShow = new List<string>();
+    private string imageToShow = "";
+    private Player player { get; set; } = new Player("");
 
     private async Task Connect()
     {
@@ -113,6 +134,23 @@
         hubConnection.On<string>("group", (_groupname) =>
         {
             groupName = _groupname;
+        });
+
+        hubConnection.On<CardBuild>("opponentMove", async (build) =>
+        {
+
+            foreach(var c in build.TableCards)
+            {
+                imagesToShow.Add(c.Name);
+            }
+
+            imageToShow = build.PlayerCard.Name;
+
+            if(imagesToShow.Count > 0)
+            {
+                showBuild = true;
+            }
+            
         });
 
         // Start game
@@ -145,7 +183,7 @@
             await GetPlayerTurn();
             startTurn();
 
-            if (PlayerCards.Count == 0)
+            if (PlayerCards?.Count == 0)
             {
                 await hubConnection.SendAsync("DealPlayerCards", groupName);
             }
@@ -189,43 +227,27 @@
     public async Task FinishTurn()
     {
         if (currentBuild?.TableCards.Count != 0) {
-            var sum = 0;
-            var isCardBiggerThanPlayerCard = false;
-
-            foreach (var c in currentBuild?.TableCards)
-            {
-                if(c.Number > currentBuild.PlayerCard.Number)
-                {
-                    isCardBiggerThanPlayerCard = true;
-                    break;
-                }
-                sum += c.Number;
-            }
+            var points = countPoints();
 
             // Take more than one card pr turn.
-            if (sum % currentBuild.PlayerCard.Number != 0 || isCardBiggerThanPlayerCard)
+            if (points % currentBuild?.PlayerCard.Number != 0 || points == -1)
             {
-                await LogMe("ERROR - SOMTING WONG");
-                error = "Illegal move!";
-                StateHasChanged();
-                await Task.Delay(5000);
-                deselectAllCards();
+                // Show alert
+                showError = true;
 
                 // Clear CardBuild
                 startTurn();
-
-                error = "";
                 StateHasChanged();
                 return;
             }
         }
 
-        deselectAllCards();
         if (hubConnection != null)
         {
-            PlayerCards.Remove(currentBuild.PlayerCard);
+            PlayerCards?.Remove(currentBuild.PlayerCard);
             await hubConnection.SendAsync("TakeTurn", JsonSerializer.Serialize(currentBuild), groupName);
         }
+        deselectAllCards();
         StateHasChanged();
     }
 
@@ -236,6 +258,21 @@
         {
             await hubConnection.SendAsync("AnnounceOpponent", player.Name, groupName);
         }
+    }
+
+    private int countPoints()
+    {
+        var sum = 0;
+
+        foreach (var c in currentBuild?.TableCards)
+        {
+            if (c.Number > currentBuild?.PlayerCard.Number)
+            {
+                return -1;
+            }
+            sum += c.Number;
+        }
+        return sum;
     }
 
     private void deselectAllCards()
@@ -271,6 +308,17 @@
         StateHasChanged();
     }
 
+    public void Dismiss()
+    {
+        showBuild = false;
+        deselectAllCards();
+        StateHasChanged();
+    }
+    private void startTurn()
+    {
+        currentBuild = new CardBuild(player);
+    }
+
     public async Task LogMe(string text)
     {
         await JSRuntime.InvokeVoidAsync("console.log", text);
@@ -290,5 +338,5 @@
             await hubConnection.DisposeAsync();
         }
     }
- }
+}
 

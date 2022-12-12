@@ -9,10 +9,7 @@ namespace Casino.Server.Hubs
 {
     public class GameHub : Hub
     {
-        //private static Dictionary<string, Player> lobby = new Dictionary<string, Player>(); // Lobby for players that are waiting for an opponent
         private static List<Player> lobby1 = new List<Player>();
-        //private static GamePlay game = new GamePlay();
-        //private static Dictionary<string, int> groups = new Dictionary<string, int>();
         private static List<Group> groups = new List<Group>();
 
         public override async Task OnConnectedAsync()
@@ -41,6 +38,11 @@ namespace Casino.Server.Hubs
                 await StartGame(groupName);
             }
             await base.OnConnectedAsync();
+        }
+
+        public async Task Test()
+        {
+            await Clients.Caller.SendAsync("test", "HEJ MED DIG!!!");
         }
 
         public async Task<string> CreateNewGroup()
@@ -90,15 +92,21 @@ namespace Casino.Server.Hubs
             await Clients.Group(groupName).SendAsync("SendTableCards", game.TableCards);
         }
 
+        public async Task ShowMoveToOpponent(CardBuild currentBuild, string groupName)
+        {
+            await Clients.OthersInGroup(groupName).SendAsync("opponentMove", currentBuild);
+        }
         
         public async Task TakeTurn(string currentBuild, string groupName)
         {
             var game = findGameByGroupName(groupName);
             var cur = JsonSerializer.Deserialize<CardBuild>(currentBuild);
             game.CountPoints(cur);
-            System.Diagnostics.Debug.WriteLine("------------------" + game.GetPlayerTurn().Name);
+
+            await ShowMoveToOpponent(cur, groupName);
+
             game.IncrementPlayerTurn();
-            System.Diagnostics.Debug.WriteLine("------------------" + game.GetPlayerTurn().Name);
+
             await ShowTableCards(groupName);
 
         }

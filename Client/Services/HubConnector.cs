@@ -1,32 +1,52 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using Casino.Shared.Models;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace Casino.Client.Services
 {
-    public class HubConnector : IAsyncDisposable
-    {
-        public HubConnection hubConnection { get; set; }
 
-        public  HubConnector(string player)
-        { 
+    public delegate Task recieveMessage(string str);
+
+    public class HubConnector
+    {
+        public event recieveMessage? recieveMessageEvent;
+        public HubConnection? hubConnection;
+        public string? path;
+
+        public string? test;
+        public bool IsConnected => hubConnection?.State == HubConnectionState.Connected;
+
+        // public void NotifyOpponentIsFound() => OpponentIsFound?.Invoke();
+
+        public async Task Connect()
+        {
+            path = $"http://localhost:7123/gamehub?playername=a";
+            hubConnection = new HubConnectionBuilder()
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On<string>("test", (res) =>
+            {
+                recieveMessageEvent?.Invoke(res);
+            });
+
+            await hubConnection.StartAsync();
         }
+
+        public string RecieveMessage(string input)
+        {
+            return input;
+        }
+
 
         public async Task Test()
         {
-            hubConnection = new HubConnectionBuilder()
-                .WithUrl("http://localhost:7123/gamehub?playername=Lars")
-                .Build();
-
-            await hubConnection.StartAsync();
+            await hubConnection.SendAsync("test");
         }
 
         public async Task Start()
         {
             await hubConnection.StartAsync();
-            hubConnection.On<string, string>("RecieveMessage", async (username, message) =>
-            { 
-            });
-
         }
 
         public async ValueTask DisposeAsync()
