@@ -9,7 +9,7 @@ namespace Casino.Server.Hubs
 {
     public class GameHub : Hub
     {
-        private static List<Player> lobby1 = new List<Player>();
+        private static List<Player> lobby = new List<Player>();
         private static List<Group> groups = new List<Group>();
 
         public override async Task OnConnectedAsync()
@@ -18,7 +18,7 @@ namespace Casino.Server.Hubs
             try
             {
                 name = Context.GetHttpContext().Request.Query["playerName"];
-                lobby1.Add(new Player(name, Context.ConnectionId));
+                lobby.Add(new Player(name, Context.ConnectionId));
 
                 //game.AddPlayer(new Player(name));
 
@@ -30,7 +30,7 @@ namespace Casino.Server.Hubs
                 // Players that send an empty name should have their browser crashing and burning.
             }
 
-            if (lobby1.Count == 2)
+            if (lobby.Count == 2)
             {
                 // Now there are two players registered in the server, and therefore,
                 // we broadcast to them that the game can start.
@@ -40,23 +40,18 @@ namespace Casino.Server.Hubs
             await base.OnConnectedAsync();
         }
 
-        public async Task Test()
-        {
-            await Clients.Caller.SendAsync("test", "HEJ MED DIG!!!");
-        }
-
         public async Task<string> CreateNewGroup()
         {
             var groupName = System.Guid.NewGuid().ToString();
-            foreach (var p in lobby1)
+            foreach (var p in lobby)
             {
                 await Groups.AddToGroupAsync(p.ConnectionId, groupName);
             }
-            groups.Add(new Group(groupName, lobby1));
+            groups.Add(new Group(groupName, lobby));
             await SendGroupName(groupName);
 
             // Reset lobby
-            lobby1 = new List<Player>();
+            lobby = new List<Player>();
             return groupName;
         }
 

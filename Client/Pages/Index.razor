@@ -126,8 +126,8 @@
         // With "On" method we can register a <message> that the hub can act upon.
         // We define these <message> in the server (see GameHub.cs).
 
-        hubConnection.On<string>("Opponent", (opponent) => {
-            this.opponent = new Player(opponent);
+        hubConnection.On<string>("Opponent", (_opponent) => {
+            opponent = new Player(_opponent);
             StateHasChanged();
         });
 
@@ -136,21 +136,22 @@
             groupName = _groupname;
         });
 
-        hubConnection.On<CardBuild>("opponentMove", async (build) =>
+        hubConnection.On<CardBuild>("opponentMove", async (_build) =>
         {
-
-            foreach(var c in build.TableCards)
+            // For some reason it doesn't work to show them directly from the build-object
+            imagesToShow = new List<string>();
+            foreach(var c in _build.TableCards)
             {
                 imagesToShow.Add(c.Name);
             }
 
-            imageToShow = build.PlayerCard.Name;
+            imageToShow = _build.PlayerCard.Name;
 
             if(imagesToShow.Count > 0)
             {
                 showBuild = true;
             }
-            
+
         });
 
         // Start game
@@ -245,6 +246,8 @@
         if (hubConnection != null)
         {
             PlayerCards?.Remove(currentBuild.PlayerCard);
+
+            await LogMe(currentBuild.TableCards.Count.ToString());
             await hubConnection.SendAsync("TakeTurn", JsonSerializer.Serialize(currentBuild), groupName);
         }
         deselectAllCards();
